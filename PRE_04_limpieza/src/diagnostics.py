@@ -5,9 +5,12 @@ OUTPUT_FILE = "PRE_04_limpieza/submission/ventas.csv"
 
 def main():
     df = pd.read_csv(OUTPUT_FILE)
-    series = df["purchase_date"]
 
-    # series = series[series.str.contains(r"-\d{2}$", regex=True)]
+    series = df["amount"]
+
+    series = series.astype(str)
+    series = series[series.str.startwith("COP")]
+    # series = series[series.str.contains(r"K$", regex=True)]
 
     series = series.sort_values()
     series = series.drop_duplicates()
