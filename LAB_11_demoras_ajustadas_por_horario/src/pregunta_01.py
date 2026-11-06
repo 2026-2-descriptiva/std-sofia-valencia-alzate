@@ -1,4 +1,8 @@
+from pathlib import Path
+
 import pandas as pd
+
+VUELOS_MINIMOS = 100_000
 
 
 def pregunta_01() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -57,5 +61,72 @@ def pregunta_01() -> tuple[pd.DataFrame, pd.DataFrame]:
         EV,819223,...,1,1
         ...
     """
+    df = pd.read_csv("data/flights_by_carrier_day_hour.csv.gz")
 
-    raise NotImplementedError
+    hourly_delay_rates = (
+        df.groupby("scheduled_departure_hour")[
+            ["operated_flights", "delayed_departure_15_flights"]
+        ]
+        .sum()
+        .reset_index()
+    )
+    hourly_delay_rates["delay_rate"] = (
+        hourly_delay_rates["delayed_departure_15_flights"]
+        / hourly_delay_rates["operated_flights"]
+    )
+
+    tasa_nacional_por_hora = hourly_delay_rates.set_index("scheduled_departure_hour")[
+        "delay_rate"
+    ]
+
+    vuelos_por_aerolinea_hora = (
+        df.groupby(["reporting_airline", "scheduled_departure_hour"])["operated_flights"]
+        .sum()
+        .reset_index()
+    )
+    vuelos_por_aerolinea_hora["demoras_esperadas"] = vuelos_por_aerolinea_hora[
+        "operated_flights"
+    ] * vuelos_por_aerolinea_hora["scheduled_departure_hour"].map(tasa_nacional_por_hora)
+    demoras_esperadas_por_aerolinea = vuelos_por_aerolinea_hora.groupby(
+        "reporting_airline"
+    )["demoras_esperadas"].sum()
+
+    carrier_adjusted_delays = (
+        df.groupby("reporting_airline")[
+            ["operated_flights", "delayed_departure_15_flights"]
+        ]
+        .sum()
+        .reset_index()
+    )
+    carrier_adjusted_delays["delay_rate"] = (
+        carrier_adjusted_delays["delayed_departure_15_flights"]
+        / carrier_adjusted_delays["operated_flights"]
+    )
+    carrier_adjusted_delays["expected_delayed_flights"] = carrier_adjusted_delays[
+        "reporting_airline"
+    ].map(demoras_esperadas_por_aerolinea)
+    carrier_adjusted_delays["observed_to_expected_ratio"] = (
+        carrier_adjusted_delays["delayed_departure_15_flights"]
+        / carrier_adjusted_delays["expected_delayed_flights"]
+    )
+
+    carrier_adjusted_delays = carrier_adjusted_delays[
+        carrier_adjusted_delays["operated_flights"] >= VUELOS_MINIMOS
+    ].copy()
+    carrier_adjusted_delays["crude_rank"] = (
+        carrier_adjusted_delays["delay_rate"].rank(ascending=False, method="min").astype(int)
+    )
+    carrier_adjusted_delays["adjusted_rank"] = (
+        carrier_adjusted_delays["observed_to_expected_ratio"]
+        .rank(ascending=False, method="min")
+        .astype(int)
+    )
+    carrier_adjusted_delays = carrier_adjusted_delays.sort_values(
+        "adjusted_rank"
+    ).reset_index(drop=True)
+
+    Path("submission").mkdir(exist_ok=True)
+    hourly_delay_rates.to_csv("submission/hourly_delay_rates.csv", index=False)
+    carrier_adjusted_delays.to_csv("submission/carrier_adjusted_delays.csv", index=False)
+
+    return hourly_delay_rates, carrier_adjusted_delays
