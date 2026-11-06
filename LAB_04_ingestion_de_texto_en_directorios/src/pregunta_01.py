@@ -1,3 +1,22 @@
+from pathlib import Path
+
+import pandas as pd
+
+DATA_DIR = Path("data")
+SUBMISSION_DIR = Path("submission")
+SENTIMIENTOS = ["negative", "neutral", "positive"]
+
+
+def construir_dataset(division):
+    filas = []
+    for sentimiento in SENTIMIENTOS:
+        carpeta = DATA_DIR / division / sentimiento
+        for archivo in sorted(carpeta.glob("*.txt")):
+            frase = archivo.read_text(encoding="utf-8").strip()
+            filas.append({"phrase": frase, "target": sentimiento})
+    return pd.DataFrame(filas, columns=["phrase", "target"])
+
+
 def pregunta_01():
     """
     Las frases de este laboratorio no están en una tabla, sino en miles de
@@ -25,5 +44,7 @@ def pregunta_01():
         "Cardona slowed her vehicle , turned around ...",neutral
         ...
     """
-
-    raise NotImplementedError
+    SUBMISSION_DIR.mkdir(exist_ok=True)
+    for division in ["train", "test"]:
+        dataset = construir_dataset(division)
+        dataset.to_csv(SUBMISSION_DIR / f"{division}_dataset.csv", index=False)
