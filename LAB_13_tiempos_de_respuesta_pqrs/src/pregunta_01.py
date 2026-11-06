@@ -1,4 +1,24 @@
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
+
+ORDEN_DIAS = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
+PLAZO_EN_DIAS_HABILES = 15
+
+
+def leer_canal(archivo, nombre_canal):
+    df = pd.read_csv(archivo).drop_duplicates()
+    df["channel"] = nombre_canal
+    return df
 
 
 def pregunta_01() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -60,5 +80,78 @@ def pregunta_01() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         letter,28138,...
         ...
     """
+    df = pd.concat(
+        [
+            leer_canal("data/historical_requests_web.csv.gz", "web"),
+            leer_canal("data/historical_requests_letter.csv.gz", "letter"),
+        ],
+        ignore_index=True,
+    )
 
-    raise NotImplementedError
+    df["in_date"] = pd.to_datetime(df["in_date"])
+    df["out_date"] = pd.to_datetime(df["out_date"])
+    respondida = df["out_date"].notna()
+
+    primer_dia_habil = (df["in_date"] + pd.Timedelta(days=1)).values.astype(
+        "datetime64[D]"
+    )
+    ultimo_dia_habil = (df["out_date"] + pd.Timedelta(days=1)).values.astype(
+        "datetime64[D]"
+    )
+    df["business_days"] = np.nan
+    df.loc[respondida, "business_days"] = np.busday_count(
+        primer_dia_habil[respondida.values], ultimo_dia_habil[respondida.values]
+    )
+    df["calendar_days"] = (df["out_date"] - df["in_date"]).dt.days
+    df["on_time"] = respondida & (df["business_days"] <= PLAZO_EN_DIAS_HABILES)
+    df["year"] = df["in_date"].dt.year
+
+    channel_summary = (
+        df.groupby("channel")
+        .agg(requests=("channel", "size"), answered=("out_date", "count"))
+        .reset_index()
+    )
+    channel_summary["pending"] = (
+        channel_summary["requests"] - channel_summary["answered"]
+    )
+    mediana_por_canal = df.loc[respondida].groupby("channel")["business_days"].median()
+    channel_summary["median_business_days"] = channel_summary["channel"].map(
+        mediana_por_canal
+    )
+    channel_summary["on_time_rate"] = channel_summary["channel"].map(
+        df.groupby("channel")["on_time"].mean()
+    )
+    channel_summary = channel_summary.sort_values("channel").reset_index(drop=True)
+
+    yearly_summary = (
+        df.groupby(["year", "channel"])
+        .agg(
+            requests=("channel", "size"),
+            pending=("out_date", lambda serie: serie.isna().sum()),
+            on_time_rate=("on_time", "mean"),
+        )
+        .reset_index()
+        .sort_values(["year", "channel"])
+        .reset_index(drop=True)
+    )
+
+    entry_day_summary = (
+        df.groupby("day_name")
+        .agg(
+            requests=("day_name", "size"),
+            median_calendar_days=(
+                "calendar_days",
+                lambda serie: serie[respondida.loc[serie.index]].median(),
+            ),
+            median_business_days=("business_days", "median"),
+        )
+        .reindex(ORDEN_DIAS)
+        .reset_index()
+    )
+
+    Path("submission").mkdir(exist_ok=True)
+    channel_summary.to_csv("submission/channel_summary.csv", index=False)
+    yearly_summary.to_csv("submission/yearly_summary.csv", index=False)
+    entry_day_summary.to_csv("submission/entry_day_summary.csv", index=False)
+
+    return channel_summary, yearly_summary, entry_day_summary
