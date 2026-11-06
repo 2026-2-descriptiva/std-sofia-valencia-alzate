@@ -1,3 +1,41 @@
+from pathlib import Path
+
+import pandas as pd
+
+COLUMNAS_DE_TEXTO = [
+    "sexo",
+    "tipo_de_emprendimiento",
+    "idea_negocio",
+    "barrio",
+    "línea_credito",
+]
+
+
+def normalizar_texto(columna):
+    return (
+        columna.str.lower()
+        .str.replace("-", " ", regex=False)
+        .str.replace(r"\s+", " ", regex=True)
+        .str.strip()
+    )
+
+
+def normalizar_fecha(valor):
+    primera, segunda, tercera = valor.split("/")
+    if len(primera) == 4:
+        anio, mes, dia = primera, segunda, tercera
+    else:
+        dia, mes, anio = primera, segunda, tercera
+    return f"{int(anio):04d}-{int(mes):02d}-{int(dia):02d}"
+
+
+def normalizar_monto(valor):
+    texto = str(valor).replace("$", "").replace(" ", "").replace(",", "")
+    if "." in texto:
+        texto = texto.split(".")[0]
+    return int(texto)
+
+
 def pregunta_01():
     """
     El archivo `data/solicitudes_de_credito.csv.gz` contiene las solicitudes de
@@ -33,5 +71,32 @@ def pregunta_01():
         femenino;comercio;almacen de ropa en;los cerros el vergel;2;...
         ...
     """
+    df = pd.read_csv("data/solicitudes_de_credito.csv.gz", sep=";")
+    df = df.drop(columns=["Unnamed: 0"])
 
-    raise NotImplementedError
+    for columna in COLUMNAS_DE_TEXTO:
+        df[columna] = normalizar_texto(df[columna])
+
+    df["fecha_de_beneficio"] = df["fecha_de_beneficio"].astype(str).apply(normalizar_fecha)
+    df["monto_del_credito"] = df["monto_del_credito"].apply(normalizar_monto)
+    df["comuna_ciudadano"] = df["comuna_ciudadano"].astype("Int64")
+
+    columnas_obligatorias = [c for c in df.columns if c != "comuna_ciudadano"]
+    df = df.dropna(subset=columnas_obligatorias).drop_duplicates()
+
+    df = df[
+        [
+            "sexo",
+            "tipo_de_emprendimiento",
+            "idea_negocio",
+            "barrio",
+            "estrato",
+            "comuna_ciudadano",
+            "fecha_de_beneficio",
+            "monto_del_credito",
+            "línea_credito",
+        ]
+    ]
+
+    Path("submission").mkdir(exist_ok=True)
+    df.to_csv("submission/solicitudes_de_credito.csv", sep=";", index=False)
