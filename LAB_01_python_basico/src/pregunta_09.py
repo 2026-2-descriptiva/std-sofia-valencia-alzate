@@ -1,3 +1,8 @@
+import csv
+import gzip
+from collections import Counter
+
+
 def pregunta_09():
     """
     Cuente cuántas veces aparece cada clave en la quinta columna (`metrics`)
@@ -8,5 +13,14 @@ def pregunta_09():
 
         {"aaa": 13, "bbb": 16, "ccc": 23, ...}
     """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
 
-    raise NotImplementedError
+    conteo = Counter()
+    for fila in filas:
+        for par in fila[4].split(","):
+            clave, _ = par.split(":")
+            conteo[clave] += 1
+
+    return dict(sorted(conteo.items()))
+

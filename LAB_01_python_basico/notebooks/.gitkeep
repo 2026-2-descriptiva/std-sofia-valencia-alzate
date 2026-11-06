@@ -1,0 +1,300 @@
+import csv
+import gzip
+
+
+def leer_registros():
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        return list(csv.reader(archivo, delimiter="\t"))
+
+
+def pregunta_01():
+    """
+    Calcule la suma de los valores de la segunda columna (`value`) del
+    archivo `data/data.csv.gz` y retorne el resultado como un número entero.
+
+    Ejemplo del formato de la respuesta:
+
+        214
+    """
+    registros = leer_registros()
+    return sum(int(fila[1]) for fila in registros)
+
+import csv
+import gzip
+from collections import Counter
+
+
+def pregunta_02():
+    """
+    Cuente cuántos registros hay para cada letra de la primera columna
+    (`letter`). Retorne una lista de tuplas `(letra, cantidad)` ordenada
+    alfabéticamente por la letra.
+
+    Ejemplo del formato de la respuesta:
+
+        [("A", 8), ("B", 7), ("C", 5), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    conteo = Counter(fila[0] for fila in filas)
+    return sorted(conteo.items())
+
+import csv
+import gzip
+from collections import defaultdict
+
+
+def pregunta_03():
+    """
+    Sume los valores de la segunda columna (`value`) para cada letra de la
+    primera columna (`letter`). Retorne una lista de tuplas `(letra, suma)`
+    ordenada alfabéticamente por la letra.
+
+    Ejemplo del formato de la respuesta:
+
+        [("A", 53), ("B", 36), ("C", 27), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    sumas = defaultdict(int)
+    for letra, valor, *_ in filas:
+        sumas[letra] += int(valor)
+
+    return sorted(sumas.items())
+
+import csv
+import gzip
+from collections import Counter
+
+
+def pregunta_04():
+    """
+    Cuente cuántos registros hay en cada mes, usando la fecha de la tercera
+    columna (`date`). Represente el mes como un texto de dos dígitos y retorne
+    una lista de tuplas `(mes, cantidad)` ordenada por el mes.
+
+    Ejemplo del formato de la respuesta:
+
+        [("01", 3), ("02", 4), ("03", 2), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    meses = Counter(fecha.split("-")[1] for _, _, fecha, *_ in filas)
+    return sorted(meses.items())
+
+import csv
+import gzip
+
+
+def pregunta_05():
+    """
+    Para cada letra de la primera columna (`letter`), encuentre el valor
+    máximo y el valor mínimo de la segunda columna (`value`). Retorne una lista
+    de tuplas `(letra, máximo, mínimo)` ordenada alfabéticamente por la letra.
+
+    Ejemplo del formato de la respuesta:
+
+        [("A", 9, 2), ("B", 9, 1), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    maximos = {}
+    minimos = {}
+    for letra, valor, *_ in filas:
+        valor = int(valor)
+        maximos[letra] = max(maximos.get(letra, valor), valor)
+        minimos[letra] = min(minimos.get(letra, valor), valor)
+
+    return [(letra, maximos[letra], minimos[letra]) for letra in sorted(maximos)]
+
+import csv
+import gzip
+
+
+def pregunta_06():
+    """
+    La quinta columna (`metrics`) contiene pares `clave:valor` separados por
+    comas. Para cada clave, encuentre el valor mínimo y el valor máximo que
+    aparecen en todo el archivo. Retorne una lista de tuplas
+    `(clave, mínimo, máximo)` ordenada alfabéticamente por la clave.
+
+    Observe que el orden es mínimo y luego máximo, al contrario de la
+    pregunta 5.
+
+    Ejemplo del formato de la respuesta:
+
+        [("aaa", 1, 9), ("bbb", 1, 9), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    minimos = {}
+    maximos = {}
+    for fila in filas:
+        for par in fila[4].split(","):
+            clave, valor = par.split(":")
+            valor = int(valor)
+            minimos[clave] = min(minimos.get(clave, valor), valor)
+            maximos[clave] = max(maximos.get(clave, valor), valor)
+
+    return [(clave, minimos[clave], maximos[clave]) for clave in sorted(minimos)]
+
+import csv
+import gzip
+from collections import defaultdict
+
+
+def pregunta_07():
+    """
+    Para cada valor distinto de la segunda columna (`value`), construya la
+    lista de letras de la primera columna (`letter`) que aparecen con ese
+    valor. Conserve las letras repetidas y el orden en que aparecen en el
+    archivo. Retorne una lista de tuplas `(valor, letras)` ordenada por el
+    valor.
+
+    Ejemplo del formato de la respuesta:
+
+        [(0, ["C"]), (1, ["E", "B", "E"]), (2, ["A", "E"]), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    letras_por_valor = defaultdict(list)
+    for letra, valor, *_ in filas:
+        letras_por_valor[int(valor)].append(letra)
+
+    return [(valor, letras_por_valor[valor]) for valor in sorted(letras_por_valor)]
+
+import csv
+import gzip
+from collections import defaultdict
+
+
+def pregunta_08():
+    """
+    Repita la pregunta 7, pero ahora cada lista de letras debe contener cada
+    letra una sola vez y estar ordenada alfabéticamente. Retorne una lista de
+    tuplas `(valor, letras)` ordenada por el valor.
+
+    Ejemplo del formato de la respuesta:
+
+        [(0, ["C"]), (1, ["B", "E"]), (2, ["A", "E"]), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    letras_por_valor = defaultdict(set)
+    for letra, valor, *_ in filas:
+        letras_por_valor[int(valor)].add(letra)
+
+    return [
+        (valor, sorted(letras_por_valor[valor])) for valor in sorted(letras_por_valor)
+    ]
+
+import csv
+import gzip
+from collections import Counter
+
+
+def pregunta_09():
+    """
+    Cuente cuántas veces aparece cada clave en la quinta columna (`metrics`)
+    de todo el archivo. Retorne un diccionario `{clave: cantidad}` con las
+    claves en orden alfabético.
+
+    Ejemplo del formato de la respuesta:
+
+        {"aaa": 13, "bbb": 16, "ccc": 23, ...}
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    conteo = Counter()
+    for fila in filas:
+        for par in fila[4].split(","):
+            clave, _ = par.split(":")
+            conteo[clave] += 1
+
+    return dict(sorted(conteo.items()))
+import csv
+import gzip
+
+
+def pregunta_10():
+    """
+    Para cada registro del archivo, en el mismo orden en que aparecen,
+    retorne una tupla con la letra de la primera columna (`letter`), la
+    cantidad de elementos de la cuarta columna (`codes`) y la cantidad de
+    pares de la quinta columna (`metrics`). El resultado es una lista con una
+    tupla por registro.
+
+    Ejemplo del formato de la respuesta:
+
+        [("E", 3, 5), ("A", 3, 4), ("B", 4, 4), ...]
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    return [
+        (letra, len(codes.split(",")), len(metrics.split(",")))
+        for letra, _, _, codes, metrics in filas
+    ]
+
+import csv
+import gzip
+from collections import defaultdict
+
+
+def pregunta_11():
+    """
+    La cuarta columna (`codes`) contiene letras minúsculas separadas por
+    comas. Para cada una de esas letras, sume los valores de la segunda
+    columna (`value`) de los registros en los que aparece. Retorne un
+    diccionario `{letra: suma}` con las letras en orden alfabético.
+
+    Ejemplo del formato de la respuesta:
+
+        {"a": 122, "b": 49, "c": 91, ...}
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    sumas = defaultdict(int)
+    for _, valor, _, codes, _ in filas:
+        valor = int(valor)
+        for codigo in codes.split(","):
+            sumas[codigo] += valor
+
+    return dict(sorted(sumas.items()))
+
+import csv
+import gzip
+from collections import defaultdict
+
+
+def pregunta_12():
+    """
+    Para cada letra de la primera columna (`letter`), sume todos los valores
+    numéricos de los pares `clave:valor` de la quinta columna (`metrics`).
+    Retorne un diccionario `{letra: suma}` con las letras en orden alfabético.
+
+    Ejemplo del formato de la respuesta:
+
+        {"A": 177, "B": 187, "C": 114, ...}
+    """
+    with gzip.open("data/data.csv.gz", "rt", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter="\t"))
+
+    sumas = defaultdict(int)
+    for letra, _, _, _, metrics in filas:
+        for par in metrics.split(","):
+            _, valor = par.split(":")
+            sumas[letra] += int(valor)
+
+    return dict(sorted(sumas.items()))
+
+    
