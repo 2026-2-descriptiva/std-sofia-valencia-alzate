@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 def pregunta_08():
     """
     Retorne la tabla `data/tbl0.tsv` completa con una columna adicional
@@ -11,5 +14,6 @@ def pregunta_08():
         2    2  B   5  1998-05-02     7
         ...
     """
-
-    raise NotImplementedError
+    tabla = pd.read_csv("data/tbl0.tsv", sep="\t")
+    tabla["suma"] = tabla["c0"] + tabla["c2"]
+    return tabla

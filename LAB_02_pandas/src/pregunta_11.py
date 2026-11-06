@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 def pregunta_11():
     """
     En `data/tbl1.tsv`, cada valor de la columna `c0` aparece en varias
@@ -14,5 +17,6 @@ def pregunta_11():
         2    2  a,c,e,f
         ...
     """
-
-    raise NotImplementedError
+    tabla = pd.read_csv("data/tbl1.tsv", sep="\t")
+    resultado = tabla.groupby("c0")["c4"].apply(lambda letras: ",".join(sorted(letras)))
+    return resultado.reset_index()
